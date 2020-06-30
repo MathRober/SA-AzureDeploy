@@ -1,0 +1,57 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- "*"
+
+stages:
+  - stage: test
+    jobs:
+      - job: 'validateandtest'
+        pool:
+          vmimage: windows-latest
+        steps:
+          - task: AzureResourceManagerTemplateDeployment@3
+            displayName: "deploy template"
+            inputs:
+              deploymentScope: 'Resource Group'
+              azureResourceManagerConnection: 'connection01'
+              subscriptionId: '4f82a2f5-0963-4972-bece-69a504dc9585'
+              action: 'Create Or Update Resource Group'
+              resourceGroupName: 'armdeploy'
+              location: 'France Central'
+              templateLocation: 'Linked artifact'
+              csmFile: '$(Build.SourcesDirectory)/StorageAccount/azuredeploy.json'
+              csmParametersFile: '$(Build.SourcesDirectory)/StorageAccount/azuredeploy.parameters.json'
+              deploymentMode: 'Validation'
+          - task: PowerShell@2
+            displayName: "Install Module"
+            inputs:
+              targetType: 'inline'
+              script: 'Install-Module Az.Resources -RequiredVersion 1.12.1-preview -AllowPrerelease -Force -Scope CurrentUser'
+          - task: AzurePowerShell@5
+            displayName: "List resources"
+            inputs:
+              azureSubscription: 'connection01'
+              ScriptType: 'InlineScript'
+              Inline: |
+                $Parameters = @{
+                  ResourcegroupName     = "armdeploy"
+                  Templatefile          = ".\StorageAccount\azuredeploy.json"
+                  TemplateParameterfile = ".\StorageAccount\azuredeploy.parameters.json"
+                  Mode                  = 'Incremental'
+                 }
+                $Result = Get-AzResourceGroupDeploymentWhatIfResult @Parameters
+                $Result
+              azurePowerShellVersion: 'LatestVersion'
+          - task: AzurePowerShell@5
+            displayName: "Check for deletion"
+            inputs:
+              azureSubscription: 'connection01'
+              ScriptType: 'FilePath'
+              ScriptPath: '$(Build.SourcesDirectory)/Tests/CheckForDeletion.ps1'
+              ScriptArguments: '-ResourceGroup armdeploy'
+              FailOnStandardError: true
+              azurePowerShellVersion: 'LatestVersion'
