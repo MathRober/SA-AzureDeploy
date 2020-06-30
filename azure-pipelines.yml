@@ -17,7 +17,7 @@ stages:
             displayName: "deploy template"
             inputs:
               deploymentScope: 'Resource Group'
-              azureResourceManagerConnection: 'connection02'
+              azureResourceManagerConnection: 'connection02_terraform'
               subscriptionId: '4f82a2f5-0963-4972-bece-69a504dc9585'
               action: 'Create Or Update Resource Group'
               resourceGroupName: 'armdeploy'
@@ -34,7 +34,7 @@ stages:
           - task: AzurePowerShell@5
             displayName: "List resources"
             inputs:
-              azureSubscription: 'connection02'
+              azureSubscription: 'connection02_terraform'
               ScriptType: 'InlineScript'
               Inline: |
                 $Parameters = @{
@@ -49,7 +49,7 @@ stages:
           - task: AzurePowerShell@5
             displayName: "Check for deletion"
             inputs:
-              azureSubscription: 'connection02'
+              azureSubscription: 'connection02_terraform'
               ScriptType: 'FilePath'
               ScriptPath: '$(Build.SourcesDirectory)/Tests/CheckForDeletion.ps1'
               ScriptArguments: '-ResourceGroup armdeploy'
